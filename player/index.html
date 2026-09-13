@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; media-src https:; img-src https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src https:">
+  <title>AI Hub 반복 영상</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }
+    body { display: grid; place-items: center; font-family: system-ui, -apple-system, sans-serif; }
+    video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
+    button, a {
+      position: absolute; left: 50%; transform: translateX(-50%); border: 0; border-radius: 999px;
+      padding: 11px 16px; color: #fff; background: rgb(20 20 20 / 82%); font: 600 14px/1 system-ui, sans-serif;
+    }
+    button { top: 50%; transform: translate(-50%, -50%); cursor: pointer; }
+    a { bottom: 14px; text-decoration: none; }
+    [hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <video autoplay muted loop playsinline controls preload="metadata"></video>
+  <button type="button" hidden>영상 재생</button>
+  <a hidden target="_blank" rel="noopener noreferrer">원본 영상 열기</a>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const source = params.get('src');
+    const poster = params.get('poster');
+    const title = (params.get('title') || 'AI Hub 반복 영상').slice(0, 160);
+    const video = document.querySelector('video');
+    const button = document.querySelector('button');
+    const fallback = document.querySelector('a');
+    document.title = title;
+
+    function validHttps(value) {
+      try { return new URL(value).protocol === 'https:'; } catch { return false; }
+    }
+
+    async function play() {
+      if (!source || document.hidden) return;
+      try {
+        video.muted = true;
+        await video.play();
+        button.hidden = true;
+      } catch {
+        button.hidden = false;
+      }
+    }
+
+    if (validHttps(source)) {
+      video.src = source;
+      fallback.href = source;
+      if (validHttps(poster)) video.poster = poster;
+      video.addEventListener('loadeddata', play);
+      video.addEventListener('canplay', play);
+      video.addEventListener('ended', () => { video.currentTime = 0; play(); });
+      video.addEventListener('error', () => {
+        button.hidden = false;
+        fallback.hidden = false;
+      });
+      button.addEventListener('click', play);
+      document.addEventListener('visibilitychange', () => document.hidden ? video.pause() : play());
+      new IntersectionObserver(([entry]) => entry.isIntersecting ? play() : video.pause(), { threshold: 0.1 }).observe(video);
+      play();
+    } else {
+      video.hidden = true;
+      button.hidden = false;
+      button.textContent = '영상 주소를 확인할 수 없습니다';
+      button.disabled = true;
+    }
+  </script>
+</body>
+</html>
